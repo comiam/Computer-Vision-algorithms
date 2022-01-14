@@ -67,7 +67,6 @@ def foerstner(Ix, Iy, threshold=0.9, round_threshold=0.9, window_size=3):
             round_response = 4 * det / (trace ** 2)
 
             if response >= threshold and round_response >= round_threshold:
-                print(round_response)
                 dots.append((j, i))
     return dots
 
@@ -87,5 +86,5 @@ if __name__ == '__main__':
     draw_dots(img, dots)
 
     cv2.imshow('foerstner', img)
-    cv2.imwrite('foerstner2.png', img)
+    cv2.imwrite('foerstner.png', img)
     cv2.waitKey(0)
