@@ -462,26 +462,38 @@ def match_images(img1, img2, min_match_count=10):
     if len(good) > min_match_count:
         h1, w1 = img1.shape[0:2]
         h2, w2 = img2.shape[0:2]
-        nWidth = w1 + w2
-        nHeight = max(h1, h2)
-        hdif = int(abs(h2 - h1) / 2)
-        newimg = np.zeros((nHeight, nWidth, 3), np.uint8)
 
-        for i in range(3):
-            newimg[hdif:hdif + h1, :w1] = img1
-            newimg[:h2, w1:w1 + w2] = img2
+        h1_is_min = h1 < h2
+        total_width = w1 + w2
+        min_width = w1 if h1_is_min else w2
+        min_height = h1 if h1_is_min else h2
+        max_width = w2 if h1_is_min else w1
+        max_height = h2 if h1_is_min else h1
 
-        # Draw SIFT keypoint matches
+        height_diff = int(abs(h2 - h1) / 2)
+        match_img = np.zeros((max_height, total_width, 3), np.uint8)
+
+        if h1_is_min:
+            match_img[height_diff:height_diff + min_height, :min_width] = img1
+            match_img[:min_height, min_width:min_width + max_width] = img2
+        else:
+            match_img[:max_height, :max_width] = img1
+            match_img[height_diff:height_diff + min_height, max_width:max_width + min_width] = img2
+
+        shift_h_first = height_diff if h1_is_min else 0
+        shift_w_second = min_width if h1_is_min else max_width
+        shift_h_second = height_diff if not h1_is_min else 0
+
         for m in good:
-            pt1 = (int(kp1[m.queryIdx].pt[0]), int(kp1[m.queryIdx].pt[1] + hdif))
-            pt2 = (int(kp2[m.trainIdx].pt[0] + w1), int(kp2[m.trainIdx].pt[1]))
-            cv2.line(newimg, pt1, pt2, tuple(np.random.random(size=3) * 255))
+            pt1 = (int(kp1[m.queryIdx].pt[0]), int(kp1[m.queryIdx].pt[1] + shift_h_first))
+            pt2 = (int(kp2[m.trainIdx].pt[0] + shift_w_second), int(kp2[m.trainIdx].pt[1]) + shift_h_second)
+            cv2.line(match_img, pt1, pt2, tuple(np.random.random(size=3) * 255))
 
-        cv2.imwrite('sift2.png', newimg)
-        cv2.imshow('sift', newimg)
-        cv2.waitKey(0)
+        return match_img
     else:
         print("Not enough matches are found - %d/%d" % (len(good), min_match_count))
+
+        return None
 
 
 if __name__ == '__main__':
@@ -492,7 +504,11 @@ if __name__ == '__main__':
     img1 = cv2.imread(filename1, cv2.IMREAD_COLOR)
     img2 = cv2.imread(filename2, cv2.IMREAD_COLOR)
 
-    match_images(img1, img2)
+    final = match_images(img1, img2)
+
+    cv2.imwrite('sift5.png', final)
+    cv2.imshow('sift', final)
+    cv2.waitKey(0)
 
     # keypoints, descriptors = sift(img)
 
